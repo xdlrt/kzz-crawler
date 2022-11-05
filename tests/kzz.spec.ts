@@ -5,6 +5,10 @@ test('test', async ({ page, request }) => {
 
   console.log('手机号/用户名', process.env.JSL_ACCOUNT);
   console.log('密码', process.env.JSL_SECRET);
+  console.log('app_id', process.env.app_id);
+  console.log('app_secret', process.env.app_secret);
+  console.log('app_token', process.env.app_token);
+  console.log('table_id', process.env.table_id);
 
   await page.goto('https://www.jisilu.cn/data/cbnew/#cb');
 
@@ -41,9 +45,6 @@ test('test', async ({ page, request }) => {
             }
           });
         });
-
-        console.log('app_token', process.env.app_token);
-        console.log('table_id', process.env.table_id);
 
         execute(request, {
           app_token: process.env.app_token || '',

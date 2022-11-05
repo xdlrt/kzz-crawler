@@ -25,8 +25,6 @@ export type BitableRecords = Array<{
 
 export async function fetchTenantAccessToken(request: APIRequestContext) {
   const url = 'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal';
-  console.log('app_id', process.env.app_id);
-  console.log('app_secret', process.env.app_secret);
   const response = await request.post(url, {
     headers: {
       'Content-Type': 'application/json; charset=utf-8'
@@ -112,7 +110,7 @@ export function makeRecords(
   const createRecords: BitableRecords = [];
   const updateRecords: BitableRecords = [];
   targetRecords.forEach(target => {
-    const origin = originRecords.find(origin => origin.fields['代码'] === target.fields['代码']);
+    const origin = (originRecords || []).find(origin => origin.fields['代码'] === target.fields['代码']);
     if (origin) {
       updateRecords.push({ ...target, record_id: origin.record_id });
     } else {
@@ -140,15 +138,15 @@ export async function execute(request: APIRequestContext, params: Omit<IBatchCre
     ...commonOptions,
     records: createRecords,
   };
-  const createResponse = await batchCreate(request, createOptions);
-
-  console.log('createResponse', createResponse);
 
   const updateOptions = {
     ...commonOptions,
     records: updateRecords,
   };
-  const updateResponse = await batchUpdate(request, updateOptions);
+
+  const [createResponse, updateResponse] = await Promise.all([batchCreate(request, createOptions), batchUpdate(request, updateOptions)]);
+
+  console.log('createResponse', createResponse);
 
   console.log('updateResponse', updateResponse);
 
