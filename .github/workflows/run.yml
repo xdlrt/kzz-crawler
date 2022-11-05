@@ -1,0 +1,25 @@
+name: run
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  playwright:
+    name: 'Playwright Tests'
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.27.1-focal
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 6.32.3
+      - name: Install dependencies
+        run: pnpm i
+      - name: Run your tests
+        run: JSL_ACCOUNT=${{ secrets.JSL_ACCOUNT }} JSL_SECRET=${{ secrets.JSL_SECRET }} app_token=${{ secrets.app_token }} table_id=${{ secrets.table_id }} app_id=${{ secrets.app_id }} app_secret=${{ secrets.app_secret }} npx playwright test

@@ -3,8 +3,8 @@ import { BitableRecords, execute, JisiluRecord } from '../utils/jisilu';
 
 test('test', async ({ page, request }) => {
 
-  console.log('手机号', process.env.phone);
-  console.log('密码', process.env.secret);
+  console.log('手机号/用户名', process.env.JSL_ACOUNT);
+  console.log('密码', process.env.JSL_SECRET);
 
   await page.goto('https://www.jisilu.cn/data/cbnew/#cb');
 
@@ -13,11 +13,11 @@ test('test', async ({ page, request }) => {
 
   await page.getByPlaceholder('手机号/用户名').click();
 
-  await page.getByPlaceholder('手机号/用户名').fill(process.env.phone || '');
+  await page.getByPlaceholder('手机号/用户名').fill(process.env.JSL_ACOUNT || '');
 
   await page.getByPlaceholder('密码').click();
 
-  await page.getByPlaceholder('密码').fill(process.env.secret || '');
+  await page.getByPlaceholder('密码').fill(process.env.JSL_SECRET || '');
 
   await page.locator('form:has-text("帐号密码登录 忘记密码 记住我 本人已阅读并同意《用户协议》和《隐私政策》 登录") input[type="checkbox"]').nth(1).check();
 
@@ -47,7 +47,7 @@ test('test', async ({ page, request }) => {
 
         execute(request, {
           app_token: process.env.app_token || '',
-          table_id: process.env!.table_id || '',
+          table_id: process.env.table_id || '',
           records,
         });
       });
