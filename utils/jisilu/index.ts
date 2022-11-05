@@ -1,0 +1,156 @@
+import { APIRequestContext } from '@playwright/test';
+
+// 集思录数据行结构
+export interface JisiluRecord {
+  bond_id: string;
+  bond_nm: string;
+  price: number;
+  premium_rt: number;
+  dblow: number;
+}
+
+// 多维表格行结构
+export interface BitableRecord {
+  '代码': string;
+  '转债名称': string;
+  '现价': number;
+  '转股溢价率': number;
+  '双低': number;
+}
+
+export type BitableRecords = Array<{
+  fields: BitableRecord;
+  record_id?: string;
+}>;
+
+export async function fetchTenantAccessToken(request: APIRequestContext) {
+  const url = 'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal';
+  console.log('app_id', process.env.app_id);
+  console.log('app_secret', process.env.app_secret);
+  const response = await request.post(url, {
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8'
+    },
+    data: {
+      "app_id": process.env.app_id,
+      "app_secret": process.env.app_secret
+    }
+  });
+  const json = await response.json();
+  return json;
+}
+
+interface ICommonParams {
+  token: string;
+  app_token: string;
+  table_id: string;
+}
+
+export interface IBatchCreateParams extends ICommonParams {
+  records: BitableRecords;
+}
+
+export async function batchCreate(request: APIRequestContext, params: IBatchCreateParams) {
+  const { token, app_token, table_id, records } = params;
+  const response = await request.post(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${app_token}/tables/${table_id}/records/batch_create`,
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      data: {
+        records,
+      },
+    });
+  const json = await response.json();
+  return json;
+}
+
+export async function batchUpdate(request: APIRequestContext, params: IBatchCreateParams) {
+  const { token, app_token, table_id, records } = params;
+  const response = await request.post(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${app_token}/tables/${table_id}/records/batch_update`,
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      data: {
+        records,
+      },
+    });
+  const json = await response.json();
+  return json;
+}
+
+export interface IBatchQueryParams extends ICommonParams {
+  pageSize?: number; // 上限 500
+}
+
+export async function batchQuery(request: APIRequestContext, params: IBatchQueryParams) {
+  const { token, app_token, table_id, pageSize = 500 } = params;
+  const response = await request.get(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${app_token}/tables/${table_id}/records`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    data: {
+      pageSize,
+    }
+  });
+  const json = await response.json();
+  return json;
+}
+
+// originRecords 表中原有数据
+// targetRecords 新爬取的数据
+export function makeRecords(
+  originRecords: BitableRecords,
+  targetRecords: BitableRecords) {
+  const createRecords: BitableRecords = [];
+  const updateRecords: BitableRecords = [];
+  targetRecords.forEach(target => {
+    const origin = originRecords.find(origin => origin.fields['代码'] === target.fields['代码']);
+    if (origin) {
+      updateRecords.push({ ...target, record_id: origin.record_id });
+    } else {
+      createRecords.push(target);
+    }
+  });
+  return { createRecords, updateRecords };
+}
+
+export async function execute(request: APIRequestContext, params: Omit<IBatchCreateParams, 'token'>) {
+  const { tenant_access_token } = await fetchTenantAccessToken(request);
+
+  const commonOptions = {
+    token: tenant_access_token,
+    app_token: params.app_token,
+    table_id: params.table_id,
+  };
+
+  const targetRecords = params.records;
+  const { data: { items: originRecords } } = await batchQuery(request, commonOptions);
+
+  const { createRecords, updateRecords } = makeRecords(originRecords, targetRecords);
+
+  const createOptions = {
+    ...commonOptions,
+    records: createRecords,
+  };
+  const createResponse = await batchCreate(request, createOptions);
+
+  console.log('createResponse', createResponse);
+
+  const updateOptions = {
+    ...commonOptions,
+    records: updateRecords,
+  };
+  const updateResponse = await batchUpdate(request, updateOptions);
+
+  console.log('updateResponse', updateResponse);
+
+  return { createResponse, updateResponse };
+}
