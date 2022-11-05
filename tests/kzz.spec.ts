@@ -3,7 +3,7 @@ import { BitableRecords, execute, JisiluRecord } from '../utils/jisilu';
 
 test('test', async ({ page, request }) => {
 
-  console.log('手机号/用户名', process.env.JSL_ACOUNT);
+  console.log('手机号/用户名', process.env.JSL_ACCOUNT);
   console.log('密码', process.env.JSL_SECRET);
 
   await page.goto('https://www.jisilu.cn/data/cbnew/#cb');
