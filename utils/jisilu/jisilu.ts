@@ -1,5 +1,5 @@
 import { APIRequestContext } from '@playwright/test';
-import { BitableRecord } from './type';
+import { BitableRecord, JisiluRecord } from './type';
 
 export type BitableRecords = Array<{
   fields: BitableRecord;
@@ -135,3 +135,21 @@ export async function execute(request: APIRequestContext, params: Omit<IBatchCre
 
   return { createResponse, updateResponse };
 }
+
+const getBondType = (btype: JisiluRecord['btype']) => {
+  if (btype === 'E') return '可交换债';
+  return '可转债';
+};
+
+export const makeFields = (record: JisiluRecord) => {
+  return {
+    '代码': record.bond_id,
+    '转债名称': record.bond_nm,
+    '现价': record.price,
+    '转股溢价率': record.premium_rt / 100,
+    '双低': record.dblow,
+    '债券类型': getBondType(record.btype),
+    '剩余年限': record.year_left,
+    '到期时间': +new Date(`20${record.short_maturity_dt}`),
+  };
+};
