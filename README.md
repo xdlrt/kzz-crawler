@@ -1,6 +1,8 @@
-## 可转债数据集成飞书多维表格
+## 可转债投资系统
 
 [![run](https://github.com/xdlrt/kzz-crawler/actions/workflows/run.yml/badge.svg?branch=main)](https://github.com/xdlrt/kzz-crawler/actions/workflows/run.yml)
+
+基于集思录可转债数据，结合飞书多维表格，实现自动化更新行情数据，并筛选出值得投资的可转债。
 
 ### 使用方法
 
