@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { BitableRecords, execute, JisiluRecord } from '../utils/jisilu';
+import { BitableRecords, execute, JisiluRecord, makeFields } from '../utils/jisilu';
 
 test('test', async ({ page, request }) => {
 
@@ -36,13 +36,7 @@ test('test', async ({ page, request }) => {
           const rowArr = Object.values(row);
           const rowData = rowArr[1] as JisiluRecord;
           records.push({
-            fields: {
-              '代码': rowData.bond_id,
-              '转债名称': rowData.bond_nm,
-              '现价': rowData.price,
-              '转股溢价率': rowData.premium_rt / 100,
-              '双低': rowData.dblow,
-            }
+            fields: makeFields(rowData),
           });
         });
 
