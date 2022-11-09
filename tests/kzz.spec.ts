@@ -50,6 +50,8 @@ test('test', async ({ page, request }) => {
   });
 
   await expect(page).toHaveURL('https://www.jisilu.cn/data/cbnew/#cb');
+  
+  await page.waitForLoadState('networkidle');
 
   await page.waitForTimeout(5000);
 });
