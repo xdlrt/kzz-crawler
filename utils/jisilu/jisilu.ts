@@ -33,6 +33,7 @@ export interface IBatchCreateParams extends ICommonParams {
 
 export async function batchCreate(request: APIRequestContext, params: IBatchCreateParams) {
   const { token, app_token, table_id, records } = params;
+  if (!records || records.length === 0) return { msg: 'no records need to create.' };
   const response = await request.post(
     `https://open.feishu.cn/open-apis/bitable/v1/apps/${app_token}/tables/${table_id}/records/batch_create`,
     {
@@ -50,6 +51,7 @@ export async function batchCreate(request: APIRequestContext, params: IBatchCrea
 
 export async function batchUpdate(request: APIRequestContext, params: IBatchCreateParams) {
   const { token, app_token, table_id, records } = params;
+  if (!records || records.length === 0) return { msg: 'no records need to update.' };
   const response = await request.post(
     `https://open.feishu.cn/open-apis/bitable/v1/apps/${app_token}/tables/${table_id}/records/batch_update`,
     {
