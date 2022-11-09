@@ -33,6 +33,7 @@ export interface IBatchCreateParams extends ICommonParams {
 
 export async function batchCreate(request: APIRequestContext, params: IBatchCreateParams) {
   const { token, app_token, table_id, records } = params;
+  if (!records || records.length === 0) return { msg: 'no records need to create.' };
   const response = await request.post(
     `https://open.feishu.cn/open-apis/bitable/v1/apps/${app_token}/tables/${table_id}/records/batch_create`,
     {
@@ -50,6 +51,7 @@ export async function batchCreate(request: APIRequestContext, params: IBatchCrea
 
 export async function batchUpdate(request: APIRequestContext, params: IBatchCreateParams) {
   const { token, app_token, table_id, records } = params;
+  if (!records || records.length === 0) return { msg: 'no records need to update.' };
   const response = await request.post(
     `https://open.feishu.cn/open-apis/bitable/v1/apps/${app_token}/tables/${table_id}/records/batch_update`,
     {
@@ -116,6 +118,9 @@ export async function execute(request: APIRequestContext, params: Omit<IBatchCre
   const { data: { items: originRecords } } = await batchQuery(request, commonOptions);
 
   const { createRecords, updateRecords } = makeRecords(originRecords, targetRecords);
+  
+  console.table(createRecords.map(it => it.fields));
+  console.table(updateRecords.map(it => it.fields));
 
   const createOptions = {
     ...commonOptions,
@@ -129,9 +134,9 @@ export async function execute(request: APIRequestContext, params: Omit<IBatchCre
 
   const [createResponse, updateResponse] = await Promise.all([batchCreate(request, createOptions), batchUpdate(request, updateOptions)]);
 
-  console.log('createResponse', createResponse);
+  console.log('createResponse', createResponse.code === 0 ? createResponse.msg : createResponse);
 
-  console.log('updateResponse', updateResponse);
+  console.log('updateResponse', updateResponse.code === 0 ? updateResponse.msg : updateResponse);
 
   return { createResponse, updateResponse };
 }
