@@ -119,8 +119,8 @@ export async function execute(request: APIRequestContext, params: Omit<IBatchCre
 
   const { createRecords, updateRecords } = makeRecords(originRecords, targetRecords);
   
-  console.table(createRecords);
-  console.table(updateRecords);
+  console.table(createRecords.map(it => it.fields));
+  console.table(updateRecords.map(it => it.fields));
 
   const createOptions = {
     ...commonOptions,
