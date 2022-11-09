@@ -118,6 +118,9 @@ export async function execute(request: APIRequestContext, params: Omit<IBatchCre
   const { data: { items: originRecords } } = await batchQuery(request, commonOptions);
 
   const { createRecords, updateRecords } = makeRecords(originRecords, targetRecords);
+  
+  console.table(createRecords);
+  console.table(updateRecords);
 
   const createOptions = {
     ...commonOptions,
@@ -131,9 +134,9 @@ export async function execute(request: APIRequestContext, params: Omit<IBatchCre
 
   const [createResponse, updateResponse] = await Promise.all([batchCreate(request, createOptions), batchUpdate(request, updateOptions)]);
 
-  console.log('createResponse', createResponse);
+  console.log('createResponse', createResponse.code === 0 ? createResponse.msg : createResponse);
 
-  console.log('updateResponse', updateResponse);
+  console.log('updateResponse', updateResponse.code === 0 ? updateResponse.msg : updateResponse);
 
   return { createResponse, updateResponse };
 }
