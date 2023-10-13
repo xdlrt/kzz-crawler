@@ -25,7 +25,7 @@ test('test', async ({ page, request }) => {
 
   await page.locator('form:has-text("帐号密码登录 忘记密码 记住我 本人已阅读并同意《用户协议》和《隐私政策》 登录") input[type="checkbox"]').nth(1).check();
 
-  await page.getByRole('button', { name: '登录' }).click();
+  await page.getByRole('button', { name: '登录', exact: true }).click();
 
   page.on('response', (response) => {
     if (response.url().includes('/data/cbnew/cb_list_new')) {

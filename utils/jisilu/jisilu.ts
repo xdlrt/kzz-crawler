@@ -155,6 +155,6 @@ export const makeFields = (record: JisiluRecord) => {
     '双低': record.dblow,
     '债券类型': getBondType(record.btype),
     '剩余年限': record.year_left,
-    '到期时间': +new Date(`20${record.short_maturity_dt}`),
+    '到期时间': +new Date(`${record.maturity_dt}`),
   };
 };
