@@ -67,21 +67,42 @@ export async function batchUpdate(request: APIRequestContext, params: IBatchCrea
   return json;
 }
 
+export interface IBatchDeleteParams extends ICommonParams {
+  records: string[];
+}
+
+export async function batchDelete(request: APIRequestContext, params: IBatchDeleteParams) {
+  const { token, app_token, table_id, records } = params;
+  if (!records || records.length === 0) return { msg: 'no records need to update.' };
+  const response = await request.post(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${app_token}/tables/${table_id}/records/batch_delete`,
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      data: {
+        records,
+      },
+    });
+  const json = await response.json();
+  return json;
+}
+
 export interface IBatchQueryParams extends ICommonParams {
   pageSize?: number; // 上限 500
+  pageToken?: string; // 分页 token
 }
 
 export async function batchQuery(request: APIRequestContext, params: IBatchQueryParams) {
-  const { token, app_token, table_id, pageSize = 500 } = params;
+  const { token, app_token, table_id, pageSize = 500, pageToken } = params;
+  const url = `https://open.feishu.cn/open-apis/bitable/v1/apps/${app_token}/tables/${table_id}/records?page_size=${pageSize}`;
   const response = await request.get(
-    `https://open.feishu.cn/open-apis/bitable/v1/apps/${app_token}/tables/${table_id}/records`, {
+    pageToken ? `${url}&page_token=${pageToken}` : url, {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
-    data: {
-      pageSize,
-    }
   });
   const json = await response.json();
   return json;
@@ -89,9 +110,7 @@ export async function batchQuery(request: APIRequestContext, params: IBatchQuery
 
 // originRecords 表中原有数据
 // targetRecords 新爬取的数据
-export function makeRecords(
-  originRecords: BitableRecords,
-  targetRecords: BitableRecords) {
+export function makeRecords(originRecords: BitableRecords, targetRecords: BitableRecords) {
   const createRecords: BitableRecords = [];
   const updateRecords: BitableRecords = [];
   targetRecords.forEach(target => {
@@ -102,7 +121,8 @@ export function makeRecords(
       createRecords.push(target);
     }
   });
-  return { createRecords, updateRecords };
+  const deleteRecords: BitableRecords = (originRecords || []).filter(origin => !updateRecords.some(record => origin.fields['代码'] === record.fields['代码']));
+  return { createRecords, updateRecords, deleteRecords };
 }
 
 export async function execute(request: APIRequestContext, params: Omit<IBatchCreateParams, 'token'>) {
@@ -115,12 +135,22 @@ export async function execute(request: APIRequestContext, params: Omit<IBatchCre
   };
 
   const targetRecords = params.records;
-  const { data: { items: originRecords } } = await batchQuery(request, commonOptions);
+  const { data: { items: originRecords, has_more: hasMore, page_token: pageToken } } = await batchQuery(request, commonOptions);
+  const aggregatedOriginRecords = [...(originRecords || [])];
 
-  const { createRecords, updateRecords } = makeRecords(originRecords, targetRecords);
-  
-  console.table(createRecords.map(it => it.fields));
-  console.table(updateRecords.map(it => it.fields));
+  if (hasMore) {
+    const { data: { items: newOriginRecords } } = await batchQuery(request, { ...commonOptions, pageToken });
+    aggregatedOriginRecords.push(...(newOriginRecords || []));
+  }
+
+  const { createRecords, updateRecords, deleteRecords } = makeRecords(aggregatedOriginRecords, targetRecords);
+
+  console.log('----------- createRecords -----------', createRecords.length);
+  // console.table(createRecords.map(it => it.fields));
+  console.log('----------- updateRecords -----------', updateRecords.length);
+  // console.table(updateRecords.map(it => it.fields));
+  console.log('----------- deleteRecords -----------', deleteRecords.length);
+  // console.table(deleteRecords.map(it => it.fields));
 
   const createOptions = {
     ...commonOptions,
@@ -132,13 +162,29 @@ export async function execute(request: APIRequestContext, params: Omit<IBatchCre
     records: updateRecords,
   };
 
-  const [createResponse, updateResponse] = await Promise.all([batchCreate(request, createOptions), batchUpdate(request, updateOptions)]);
+  const deleteOptions = {
+    ...commonOptions,
+    records: deleteRecords.map(record => record.record_id!),
+  };
 
-  console.log('createResponse', createResponse.code === 0 ? createResponse.msg : createResponse);
+  const requests: Array<Promise<any>> = [];
 
-  console.log('updateResponse', updateResponse.code === 0 ? updateResponse.msg : updateResponse);
+  if (createOptions.records.length > 0) {
+    requests.push(batchCreate(request, createOptions));
+  }
 
-  return { createResponse, updateResponse };
+  if (updateOptions.records.length > 0) {
+    requests.push(batchCreate(request, updateOptions));
+  }
+
+  if (deleteOptions.records.length > 0) {
+    requests.push(batchDelete(request, deleteOptions));
+  }
+
+  const results = await Promise.all(requests);
+  results.forEach(res => {
+    console.log('response', res.msg);
+  });
 }
 
 const getBondType = (btype: JisiluRecord['btype']) => {
