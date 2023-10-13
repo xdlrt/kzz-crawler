@@ -1,9 +1,13 @@
 import { APIRequestContext } from '@playwright/test';
 import { BitableRecord, JisiluRecord } from './type';
 
+export type NewBitableRecords = Array<{
+  fields: BitableRecord;
+}>;
+
 export type BitableRecords = Array<{
   fields: BitableRecord;
-  record_id?: string;
+  record_id: string;
 }>;
 
 export async function fetchTenantAccessToken(request: APIRequestContext) {
@@ -28,7 +32,7 @@ interface ICommonParams {
 }
 
 export interface IBatchCreateParams extends ICommonParams {
-  records: BitableRecords;
+  records: NewBitableRecords;
 }
 
 export async function batchCreate(request: APIRequestContext, params: IBatchCreateParams) {
@@ -110,18 +114,30 @@ export async function batchQuery(request: APIRequestContext, params: IBatchQuery
 
 // originRecords 表中原有数据
 // targetRecords 新爬取的数据
-export function makeRecords(originRecords: BitableRecords, targetRecords: BitableRecords) {
-  const createRecords: BitableRecords = [];
+export function makeRecords(originRecords: BitableRecords, targetRecords: NewBitableRecords) {
+  const createRecords: NewBitableRecords = [];
   const updateRecords: BitableRecords = [];
+  const deleteRecords: BitableRecords = [];
+
+  const originRecordsMap = new Map();
+  originRecords.forEach(origin => {
+    const code = origin.fields['代码'];
+    originRecordsMap.set(code, origin);
+  });
+
   targetRecords.forEach(target => {
-    const origin = (originRecords || []).find(origin => origin.fields['代码'] === target.fields['代码']);
-    if (origin) {
-      updateRecords.push({ ...target, record_id: origin.record_id });
+    const targetCode = target.fields['代码'];
+    const originRecord = originRecordsMap.get(targetCode);
+    if (originRecord) {
+      updateRecords.push({ ...target, record_id: originRecord.record_id });
+      originRecordsMap.delete(targetCode);
     } else {
       createRecords.push(target);
     }
   });
-  const deleteRecords: BitableRecords = (originRecords || []).filter(origin => !updateRecords.some(record => origin.fields['代码'] === record.fields['代码']));
+
+  deleteRecords.push(...originRecordsMap.values());
+
   return { createRecords, updateRecords, deleteRecords };
 }
 
@@ -170,20 +186,23 @@ export async function execute(request: APIRequestContext, params: Omit<IBatchCre
   const requests: Array<Promise<any>> = [];
 
   if (createOptions.records.length > 0) {
+    console.log('----------- make create request -----------');
     requests.push(batchCreate(request, createOptions));
   }
 
   if (updateOptions.records.length > 0) {
-    requests.push(batchCreate(request, updateOptions));
+    console.log('----------- make update request -----------');
+    requests.push(batchUpdate(request, updateOptions));
   }
 
   if (deleteOptions.records.length > 0) {
+    console.log('----------- make delete request -----------');
     requests.push(batchDelete(request, deleteOptions));
   }
 
   const results = await Promise.all(requests);
   results.forEach(res => {
-    console.log('response', res.msg);
+    console.log('----------- response -----------', res.msg);
   });
 }
 
