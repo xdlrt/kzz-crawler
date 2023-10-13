@@ -7,7 +7,7 @@ export interface JisiluRecord {
   dblow: number; // 双低值
   btype: 'C' | 'E'; // C 可转债 E 可交换债
   year_left: number; // 剩余年限
-  short_maturity_dt: string; // 到期时间
+  maturity_dt: string; // 到期时间
 }
 
 // 多维表格行结构
