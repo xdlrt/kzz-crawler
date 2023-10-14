@@ -162,11 +162,11 @@ export async function execute(request: APIRequestContext, params: Omit<IBatchCre
   const { createRecords, updateRecords, deleteRecords } = makeRecords(aggregatedOriginRecords, targetRecords);
 
   console.log('----------- createRecords -----------', createRecords.length);
-  // console.table(createRecords.map(it => it.fields));
+  console.table(createRecords.slice(0, 5).map(it => it.fields));
   console.log('----------- updateRecords -----------', updateRecords.length);
-  // console.table(updateRecords.map(it => it.fields));
+  console.table(updateRecords.slice(0, 5).map(it => it.fields));
   console.log('----------- deleteRecords -----------', deleteRecords.length);
-  // console.table(deleteRecords.map(it => it.fields));
+  console.table(deleteRecords.slice(0, 5).map(it => it.fields));
 
   const createOptions = {
     ...commonOptions,
@@ -211,15 +211,23 @@ const getBondType = (btype: JisiluRecord['btype']) => {
   return '可转债';
 };
 
-export const makeFields = (record: JisiluRecord) => {
+export const makeFields = (record: JisiluRecord): BitableRecord => {
   return {
     '代码': record.bond_id,
     '转债名称': record.bond_nm,
     '现价': record.price,
+    '正股名称': record.stock_nm,
+    '正股价': record.sprice,
+    '正股PB': record.pb,
+    '转股价值': record.convert_value,
     '转股溢价率': record.premium_rt / 100,
     '双低': record.dblow,
-    '债券类型': getBondType(record.btype),
+    '债券评级': record.rating_cd,
+    '转债占流通市值': record.convert_amt_ratio / 100,
     '剩余年限': record.year_left,
+    '剩余规模': record.curr_iss_amt,
+    '到期税前收益': record.ytm_rt / 100,
     '到期时间': +new Date(`${record.maturity_dt}`),
+    '债券类型': getBondType(record.btype),
   };
 };
