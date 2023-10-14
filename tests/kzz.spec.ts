@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { BitableRecords, execute, JisiluRecord, makeFields } from '../utils/jisilu';
+import { NewBitableRecords, execute, JisiluRecord, makeFields } from '../utils/jisilu';
 
 test('test', async ({ page, request }) => {
 
@@ -30,7 +30,7 @@ test('test', async ({ page, request }) => {
   page.on('response', (response) => {
     if (response.url().includes('/data/cbnew/cb_list_new')) {
       response.json().then((res) => {
-        const records: BitableRecords = [];
+        const records: NewBitableRecords = [];
 
         res.rows.forEach((row) => {
           const rowArr = Object.values(row);
